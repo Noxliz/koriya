@@ -1,0 +1,24 @@
+{
+  "name": "koriya",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Koriya — SaaS de gestion de budget personnel",
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "packages/shared"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "npm run dev -ws --prefix apps",
+    "install:clean": "rm -rf node_modules && npm install",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
+    "lint": "eslint \"**/*.{ts,tsx,js}\" --max-warnings 0"
+  },
+  "packageManager": "npm@11.19.1",
+  "dependencies": {
+    "@prisma/client": "^6.19.3"
+  }
+}

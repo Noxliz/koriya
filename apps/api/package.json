@@ -1,0 +1,32 @@
+{
+  "name": "koriya-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend Koriya — API REST Node.js + Express + TypeScript",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "dependencies": {
+    "argon2": "^0.45.2",
+    "cookie-parser": "^1.4.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^5.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.0",
+    "@types/cors": "^2.8.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "eslint": "^9.15.0",
+    "prettier": "^3.3.0",
+    "prisma": "^6.19.3",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
