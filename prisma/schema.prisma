@@ -1,0 +1,191 @@
+// ============================================================
+// Koriya — Schéma Prisma
+// ============================================================
+// Notice : ce fichier définit le modèle de données initial.
+// Les règles métier (valeur absolue, atomicité, cohérence)
+// sont appliquées dans les services, pas en DB seulement.
+//
+// Règles clés :
+// - Tout enfant (account, category, transaction, ...) appartient
+//   à un user (userId). L'isolation est vérifiée côté service.
+// - Montants : Decimal (pas de flottants), toujours positifs.
+// - Transaction.type : "income" | "expense" | "transfer"
+//   - income : +solde sur le compte
+//   - expense : -solde sur le compte
+//   - transfer : 2 transactions (source, destination) de même montant
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================
+// Utilisateurs & Session
+// ============================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts        Account[]
+  transactions    Transaction[]
+  budgets         Budget[]
+  savingsGoals    SavingsGoal[] @relation("UserToSavingsGoal")
+  preferences     UserPreference[]
+  sessions        Session[]
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  updatedAt DateTime  @updatedAt
+
+  @@index([expiresAt])
+}
+
+// ============================
+// Comptes
+// ============================
+
+model Account {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  name           String
+  type           String    // "cash" | "bank" | "mobile" | "other"
+  currency       String    // "XOF" | "EUR"
+  initialBalance Decimal
+  archived       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+// ============================
+// Catégories
+// ============================
+
+model Category {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  type        String    // "income" | "expense" | "transfer"
+  icon        String?
+  color       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  transactions Transaction[] @relation("CategoryToTransaction")
+  budgets      Budget[]
+
+  @@index([userId, type])
+}
+
+// ============================
+// Transactions
+// ============================
+
+model Transaction {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  accountId   String
+  account     Account   @relation(fields: [accountId], references: [id])
+  type        String    // "income" | "expense" | "transfer"
+  categoryId  String?
+  category    Category? @relation("CategoryToTransaction", fields: [categoryId], references: [id])
+  amount      Decimal   // toujours > 0
+  date        DateTime
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, accountId, date])
+  @@unique([userId, accountId, type, date])
+}
+
+// ============================
+// Budgets
+// ============================
+
+model Budget {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  period      String    @default("monthly")
+  amount      Decimal   // plafond mensuel
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, categoryId])
+}
+
+// ============================
+// Objectifs d'épargne
+// ============================
+
+model SavingsGoal {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation("UserToSavingsGoal", fields: [userId], references: [id])
+  name          String
+  targetAmount  Decimal
+  currency      String
+  targetDate    DateTime?
+  currentAmount Decimal   @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  contributions SavingsContribution[]
+
+  @@index([userId])
+}
+
+model SavingsContribution {
+  id          String    @id @default(cuid())
+  savingsGoalId String
+  savingsGoal SavingsGoal @relation(fields: [savingsGoalId], references: [id])
+  amount      Decimal
+  date        DateTime  @default(now())
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([savingsGoalId])
+  @@unique([savingsGoalId, date])
+}
+
+// ============================
+// Préférences utilisateur
+// ============================
+
+model UserPreference {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  user                  User      @relation(fields: [userId], references: [id])
+  preferredCurrency     String    @default("EUR")
+  theme                 String    @default("light") // "light" | "dark"
+  language              String    @default("fr")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
